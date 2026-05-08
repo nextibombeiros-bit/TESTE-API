@@ -1,0 +1,15 @@
+{
+  "name": "teste-api-nexti",
+  "version": "1.0.0",
+  "description": "Teste para validar API da Nexti, focando em marcações de ponto fora da unidade para bombeiros",
+  "main": "src/index.js",
+  "scripts": {
+    "test:nexti": "node src/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.0"
+  },
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste API Nexti - Marcações Fora da Unidade</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .map { height: 200px; width: 100%; }
+        .photo { max-width: 200px; max-height: 200px; }
+        .status-NORMAL { background-color: #d4edda; }
+        .status-ATENCAO_FORA_PERIMETRO { background-color: #fff3cd; }
+        .status-FORA_DA_UNIDADE { background-color: #f8d7da; }
+        .status-CRITICO_FORA_DA_UNIDADE { background-color: #f5c6cb; }
+        .status-SEM_LOCALIZACAO { background-color: #e2e3e5; }
+        .status-POSTO_SEM_COORDENADA { background-color: #d1ecf1; }
+    </style>
+</head>
+<body>
+    <h1>Teste API Nexti - Marcações de Bombeiros Fora da Unidade</h1>
+    <p>Esta página exibe alertas de marcações de ponto realizadas longe da unidade de trabalho.</p>
+    <div id="summary"></div>
+    <table id="alerts-table">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Cargo</th>
+                <th>Unidade</th>
+                <th>Data/Hora</th>
+                <th>Tipo</th>
+                <th>Status</th>
+                <th>Distância</th>
+                <th>Localização</th>
+                <th>Foto</th>
+                <th>Dispositivo</th>
+                <th>Motivo</th>
+            </tr>
+        </thead>
+        <tbody id="alerts-body"></tbody>
+    </table>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        async function loadData() {
+            try {
+                const response = await fetch('output/alertas_fora_unidade.json');
+                const alerts = await response.json();
+                displaySummary(alerts);
+                displayAlerts(alerts);
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                document.getElementById('summary').innerHTML = '<p>Erro ao carregar dados. Execute o script primeiro.</p>';
+            }
+        }
+
+        function displaySummary(alerts) {
+            const total = alerts.length;
+            const semLocalizacao = alerts.filter(a => a.status === 'SEM_LOCALIZACAO').length;
+            const comFoto = alerts.filter(a => a.photoPath).length;
+            const semFoto = total - comFoto;
+            const summary = `
+                <p><strong>Total de alertas:</strong> ${total}</p>
+                <p><strong>Sem localização:</strong> ${semLocalizacao}</p>
+                <p><strong>Com foto:</strong> ${comFoto}</p>
+                <p><strong>Sem foto:</strong> ${semFoto}</p>
+            `;
+            document.getElementById('summary').innerHTML = summary;
+        }
+
+        function displayAlerts(alerts) {
+            const tbody = document.getElementById('alerts-body');
+            alerts.forEach(alert => {
+                const row = document.createElement('tr');
+                row.className = `status-${alert.status}`;
+                row.innerHTML = `
+                    <td>${alert.personName}</td>
+                    <td>${alert.nameCareer}</td>
+                    <td>${alert.workplaceName}</td>
+                    <td>${new Date(alert.clockingDate).toLocaleString('pt-BR')}</td>
+                    <td>${alert.clockingTypeName}</td>
+                    <td>${alert.status}</td>
+                    <td>${alert.distanceMeters ? alert.distanceMeters.toFixed(2) + 'm' : 'N/A'}</td>
+                    <td>${createMap(alert)}</td>
+                    <td>${alert.photoPath ? `<img src="${alert.photoPath}" class="photo" alt="Foto da marcação">` : 'Sem foto'}</td>
+                    <td>${alert.deviceDescription}</td>
+                    <td>${alert.reason}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function createMap(alert) {
+            if (!alert.clockingLatitude || !alert.clockingLongitude) {
+                return 'Sem coordenadas';
+            }
+            const mapId = `map-${alert.personId}-${Date.now()}`;
+            const mapHtml = `<div id="${mapId}" class="map"></div>`;
+            setTimeout(() => {
+                const map = L.map(mapId).setView([alert.clockingLatitude, alert.clockingLongitude], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+                L.marker([alert.clockingLatitude, alert.clockingLongitude]).addTo(map)
+                    .bindPopup('Marcação');
+                if (alert.workplaceLatitude && alert.workplaceLongitude) {
+                    L.marker([alert.workplaceLatitude, alert.workplaceLongitude]).addTo(map)
+                        .bindPopup('Unidade');
+                }
+            }, 100);
+            return mapHtml;
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

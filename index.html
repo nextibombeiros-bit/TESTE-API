@@ -4,45 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teste API Nexti - Marcações Fora da Unidade</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .map { height: 200px; width: 100%; }
-        .photo { max-width: 200px; max-height: 200px; }
+        .map { height: 250px; width: 100%; border: 1px solid #ddd; }
+        .photo { max-width: 150px; max-height: 150px; border: 1px solid #ccc; }
         .status-NORMAL { background-color: #d4edda; }
         .status-ATENCAO_FORA_PERIMETRO { background-color: #fff3cd; }
         .status-FORA_DA_UNIDADE { background-color: #f8d7da; }
         .status-CRITICO_FORA_DA_UNIDADE { background-color: #f5c6cb; }
         .status-SEM_LOCALIZACAO { background-color: #e2e3e5; }
         .status-POSTO_SEM_COORDENADA { background-color: #d1ecf1; }
+        .table th, .table td { vertical-align: middle; }
     </style>
 </head>
-<body>
-    <h1>Teste API Nexti - Marcações de Bombeiros Fora da Unidade</h1>
-    <p>Esta página exibe alertas de marcações de ponto realizadas longe da unidade de trabalho.</p>
-    <div id="summary"></div>
-    <table id="alerts-table">
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Cargo</th>
-                <th>Unidade</th>
-                <th>Data/Hora</th>
-                <th>Tipo</th>
-                <th>Status</th>
-                <th>Distância</th>
-                <th>Localização</th>
-                <th>Foto</th>
-                <th>Dispositivo</th>
-                <th>Motivo</th>
-            </tr>
-        </thead>
-        <tbody id="alerts-body"></tbody>
-    </table>
+<body class="bg-light">
+    <div class="container my-4">
+        <header class="text-center mb-4">
+            <h1 class="display-4">Teste API Nexti</h1>
+            <p class="lead">Monitoramento de Marcações de Ponto Fora da Unidade para Bombeiros</p>
+        </header>
+
+        <div id="summary" class="alert alert-info">
+            Carregando dados...
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered" id="alerts-table">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nome</th>
+                        <th>Cargo</th>
+                        <th>Unidade</th>
+                        <th>Data/Hora</th>
+                        <th>Tipo</th>
+                        <th>Status</th>
+                        <th>Distância</th>
+                        <th>Localização</th>
+                        <th>Foto</th>
+                        <th>Dispositivo</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody id="alerts-body"></tbody>
+            </table>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -54,7 +61,7 @@
                 displayAlerts(alerts);
             } catch (error) {
                 console.error('Erro ao carregar dados:', error);
-                document.getElementById('summary').innerHTML = '<p>Erro ao carregar dados. Execute o script primeiro.</p>';
+                document.getElementById('summary').innerHTML = '<div class="alert alert-danger">Erro ao carregar dados. Execute o script primeiro ou verifique os arquivos.</div>';
             }
         }
 
@@ -64,10 +71,10 @@
             const comFoto = alerts.filter(a => a.photoPath).length;
             const semFoto = total - comFoto;
             const summary = `
-                <p><strong>Total de alertas:</strong> ${total}</p>
-                <p><strong>Sem localização:</strong> ${semLocalizacao}</p>
-                <p><strong>Com foto:</strong> ${comFoto}</p>
-                <p><strong>Sem foto:</strong> ${semFoto}</p>
+                <strong>Total de alertas:</strong> ${total} |
+                <strong>Sem localização:</strong> ${semLocalizacao} |
+                <strong>Com foto:</strong> ${comFoto} |
+                <strong>Sem foto:</strong> ${semFoto}
             `;
             document.getElementById('summary').innerHTML = summary;
         }
@@ -83,10 +90,10 @@
                     <td>${alert.workplaceName}</td>
                     <td>${new Date(alert.clockingDate).toLocaleString('pt-BR')}</td>
                     <td>${alert.clockingTypeName}</td>
-                    <td>${alert.status}</td>
+                    <td><span class="badge bg-secondary">${alert.status}</span></td>
                     <td>${alert.distanceMeters ? alert.distanceMeters.toFixed(2) + 'm' : 'N/A'}</td>
                     <td>${createMap(alert)}</td>
-                    <td>${alert.photoPath ? `<img src="${alert.photoPath}" class="photo" alt="Foto da marcação">` : 'Sem foto'}</td>
+                    <td>${alert.photoPath ? `<img src="${alert.photoPath}" class="photo img-fluid" alt="Foto da marcação">` : '<em>Sem foto</em>'}</td>
                     <td>${alert.deviceDescription}</td>
                     <td>${alert.reason}</td>
                 `;
@@ -96,9 +103,9 @@
 
         function createMap(alert) {
             if (!alert.clockingLatitude || !alert.clockingLongitude) {
-                return 'Sem coordenadas';
+                return '<em>Sem coordenadas</em>';
             }
-            const mapId = `map-${alert.personId}-${Date.now()}`;
+            const mapId = `map-${alert.personId}-${Date.now()}-${Math.random()}`;
             const mapHtml = `<div id="${mapId}" class="map"></div>`;
             setTimeout(() => {
                 const map = L.map(mapId).setView([alert.clockingLatitude, alert.clockingLongitude], 15);
@@ -106,12 +113,12 @@
                     attribution: '© OpenStreetMap contributors'
                 }).addTo(map);
                 L.marker([alert.clockingLatitude, alert.clockingLongitude]).addTo(map)
-                    .bindPopup('Marcação');
+                    .bindPopup('Marcação de ' + alert.personName);
                 if (alert.workplaceLatitude && alert.workplaceLongitude) {
                     L.marker([alert.workplaceLatitude, alert.workplaceLongitude]).addTo(map)
-                        .bindPopup('Unidade');
+                        .bindPopup('Unidade: ' + alert.workplaceName);
                 }
-            }, 100);
+            }, 200);
             return mapHtml;
         }
 
